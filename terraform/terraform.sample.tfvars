@@ -1,0 +1,1 @@
+aws_key_name = "NAME_OF_A_PUBLIC_KEY_ALREADY_ON_AWS"

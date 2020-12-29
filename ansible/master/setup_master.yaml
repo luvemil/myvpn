@@ -1,0 +1,92 @@
+---
+- hosts: localhost
+  connection: local
+  vars_files:
+    - ../vars/main.yaml
+
+  tasks:
+    - name: Checkout easyrsa
+      git: clone="yes" repo="https://github.com/OpenVPN/easy-rsa" dest="dist/repos/easyrsa"
+
+    - name: "Copy easyrsa3 to openvpn"
+      shell: >
+        cp -r dist/repos/easyrsa/easyrsa3 dist/easyrsa
+      args:
+        creates: dist/easyrsa
+
+    - name: "Upload easyrsa vars"
+      template: src="etc/openvpn/easyrsa/vars.j2" dest="dist/easyrsa/vars"
+
+    - name: "Upload build-ca script"
+      template: src="etc/openvpn/easyrsa/build-ca-script.exp.j2" dest="dist/easyrsa/build-ca-script.exp" mode="0750"
+
+    - name: "Stat PKI"
+      stat: path=dist/easyrsa/pki/
+      register: pki_stat
+
+    - name: "Init PKI"
+      shell: >
+        ./easyrsa init-pki
+      args:
+        creates: dist/easyrsa/pki
+        chdir: dist/easyrsa
+      when: pki_stat.stat.exists == False
+
+    - name: "Setup CA Certificate"
+      shell: >
+        ./build-ca-script.exp
+      args:
+        creates: dist/easyrsa/pki/ca.crt
+        chdir: dist/easyrsa
+
+    - name: "Stat dh"
+      stat: path=dist/easyrsa/pki/dh.pem
+      register: dh_stat
+
+    - name: "Build Diffie Hellman"
+      # shell: chdir=dist/easyrsa nohup ./easyrsa gen-dh
+      shell: chdir=dist/easyrsa nohup openssl dhparam -out pki/dh.pem 2048 # using 2048 bit since the default 4096 take too long
+      async: 45
+      poll: 0
+      when: dh_stat.stat.exists == False
+      # NOTE: this process can take some time and we do not wait for it to finish
+
+    - name: "Setup Main Certificate"
+      shell: >
+        ./easyrsa build-server-full main nopass
+      args:
+        creates: dist/easyrsa/pki/issued/main.crt
+        chdir: dist/easyrsa
+
+    - name: "Setup Client Certificate"
+      shell: >
+        ./easyrsa build-client-full client nopass
+      args:
+        creates: dist/easyrsa/pki/issued/client.crt
+        chdir: dist/easyrsa
+
+    - name: "Setup ta Cert"
+      shell: >
+        openvpn --genkey --secret ta.key
+      args:
+        creates: dist/easyrsa/pki/private/ta.key
+        chdir: dist/easyrsa/pki/private
+
+    # - name: "Template Client Config"
+    #   template: src="etc/openvpn/client.ovpn.j2" dest="/etc/openvpn/client.ovpn" mode="0644"
+
+    # - name: "Tar a client config up"
+    #   shell: >
+    #     tar -pczvf client.tar.gz client.ovpn easyrsa/pki/ca.crt easyrsa/pki/issued/client.crt easyrsa/pki/private/client.key easyrsa/pki/private/ta.key
+    #   args:
+    #     creates: /etc/openvpn/client.tar.gz
+    #     chdir: /etc/openvpn/
+
+    # - name: "Download the client config"
+    #   fetch: src="/etc/openvpn/client.tar.gz" dest="~/Downloads/"
+
+    # - name: "Check networing var"
+    #   lineinfile: dest="/etc/sysconfig/network" regexp="^NETWORKING" line="NETWORKING=YES"
+
+    # - name: "Start OpenVPN"
+    #   service: name=openvpn state=restarted

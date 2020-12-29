@@ -1,0 +1,72 @@
+---
+- hosts: ovpn-server
+  vars_files:
+    - ../vars/main.yaml
+  become: true
+  tasks:
+    - name: "Openvpn: Install dependencies."
+      apt:
+        pkg:
+          - openvpn
+          - git
+          - openssl
+          - automake
+          - libtool
+        state: present
+        update_cache: yes
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: "Setup directory structure"
+      file:
+        name: "{{ item }}"
+        state: directory
+      with_items:
+        - /etc/openvpn/easyrsa/pki/issued/
+        - /etc/openvpn/easyrsa/pki/private/
+        - /etc/openvpn/ccd/
+
+    - name: "Copy certificates"
+      copy:
+        src: "{{ item }}"
+        dest: /etc/openvpn/easyrsa/pki/
+      with_items:
+        - dist/easyrsa/pki/ca.crt
+        - dist/easyrsa/pki/dh.pem
+
+    - name: "Copy issued"
+      copy:
+        src: "{{ item }}"
+        dest: /etc/openvpn/easyrsa/pki/issued/
+      with_items:
+        - dist/easyrsa/pki/issued/main.crt
+
+    - name: "Copy private"
+      copy:
+        src: "{{ item }}"
+        dest: /etc/openvpn/easyrsa/pki/private/
+      with_items:
+        - dist/easyrsa/pki/private/main.key
+        - dist/easyrsa/pki/private/ta.key
+
+    - name: "Create User"
+      user: name="{{ item.name }}"
+        comment="{{ item.comment }}"
+        shell="{{ item.shell }}"
+        system="yes"
+        state="present"
+        createhome="{{ item.createhome }}"
+        uid="{{ item.uid }}"
+      with_items:
+        - {
+            name: "vpndata",
+            comment: "Vpndata",
+            shell: "/bin/sh",
+            createhome: "yes",
+            uid: "451",
+          }
+
+    - name: "Upload OpenVPN Server Config"
+      template: src="etc/openvpn/server.conf.j2" dest="/etc/openvpn/server.conf" mode="0750" owner="vpndata" group="vpndata"
+
+    - name: "Start OpenVPN"
+      service: name=openvpn@server state=restarted

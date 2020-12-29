@@ -1,0 +1,5 @@
+hosts.ini
+*/dist
+
+vars/*.yaml
+!vars/*.sample.yaml
