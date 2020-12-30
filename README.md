@@ -4,7 +4,13 @@ Terraform spec and ansible scripts to setup an openvpn server and client
 
 ## References
 
+### Ansible playbooks
+
 Most of the content of the `ansible` folder is copied from [this blog post](https://www.mikejonesey.co.uk/security/2fa/openvpn-with-2fa) with minor changes to make it work on Ubuntu and on new versions.
+
+### Openvpn
+
+[setup guide](https://openvpn.net/community-resources/how-to/#setting-up-your-own-certificate-authority-ca-and-generating-certificates-and-keys-for-an-openvpn-server-and-multiple-clients)
 
 # How To
 
@@ -18,7 +24,7 @@ Most of the content of the `ansible` folder is copied from [this blog post](http
 
 # TODO
 
-- [ ] configure the vpn to have all client traffic routed through the VPN server
+- [x] configure the vpn to have all client traffic routed through the VPN server
 - [ ] make the aws region an input parameter
 - [ ] add optional 2fa
 - [ ] integrate terraform and ansible calls

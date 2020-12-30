@@ -16,6 +16,12 @@
         update_cache: yes
       when: ansible_distribution == 'Ubuntu'
 
+    - name: "Setup iptables for route forwarding"
+      iptables: table=nat chain=POSTROUTING source="{{ vpn_ip }}/{{ vpn_mask_id }}" out_interface=eth0 jump=MASQUERADE
+
+    - name: "Forward ipv4"
+      sysctl: state=present name=net.ipv4.ip_forward value=1 reload=True
+
     - name: "Setup directory structure"
       file:
         name: "{{ item }}"
