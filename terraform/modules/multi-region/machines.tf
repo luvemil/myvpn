@@ -16,17 +16,18 @@ data "aws_ami" "ubuntu" {
 }
 
 resource "aws_instance" "openvpn" {
+  count         = var.server_count
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
   tags = {
-    Name    = "myopenvpn-server-1"
+    Name    = "myopenvpn-server-${count.index}"
     Project = "myopenvpn"
     Misc    = "terraform"
   }
-  key_name        = var.aws_key_name
-  security_groups = [var.security_group_name]
+  key_name        = aws_key_pair.terraform.key_name
+  security_groups = [aws_security_group.allow_base.name]
 }
 
 output "instance_ip_addr" {
-  value = aws_instance.openvpn.public_ip
+  value = [aws_instance.openvpn.*.public_ip]
 }

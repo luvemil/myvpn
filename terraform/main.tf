@@ -4,7 +4,8 @@ module "eu-central-1" {
     aws = aws
   }
 
-  aws_pub_key = var.aws_pub_key
+  aws_pub_key  = var.aws_pub_key
+  server_count = 0
 }
 
 module "us-east-1" {
@@ -13,7 +14,8 @@ module "us-east-1" {
     aws = aws.us-east-1
   }
 
-  aws_pub_key = var.aws_pub_key
+  aws_pub_key  = var.aws_pub_key
+  server_count = 0
 }
 
 
